@@ -1,0 +1,22 @@
+name: ponjika_flutter
+version: 1.0.0
+description: Accessible, theme-aware Bangla and Gregorian calendars, date and range pickers built on the Ponjika Dart core.
+homepage: https://github.com/arrahmanbd/ponjika
+repository: https://github.com/arrahmanbd/ponjika
+issue_tracker: https://github.com/arrahmanbd/ponjika/issues
+environment:
+  sdk: '>=3.9.0 <4.0.0'
+  flutter: '>=3.35.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  ponjika: ^2.0.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+topics:
+  - bangla
+  - calendar
+  - localization
+flutter:
+  uses-material-design: true

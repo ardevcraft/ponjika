@@ -1,2 +1,5 @@
-# Dart related
 .dart_tool/
+build/
+coverage/
+pubspec.lock
+pubspec_overrides.yaml
