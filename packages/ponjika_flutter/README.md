@@ -80,6 +80,7 @@ configure Flutter's localization delegates and supported locales in MaterialApp;
 fonts and other application strings remain the application's responsibility.
 No Riverpod/Popsicle/Bloc dependency is required; keep selection in your own store.
 
+
 ## Example playground
 
 From the extracted two-package bundle run `dart tool/bootstrap.dart`, then:
@@ -95,4 +96,11 @@ format editor and copyable Dart snippets. Uses the Bangladesh revised civil
 ruleset, proleptic before 2019. It does not implement astronomical panjika,
 sunrise calculations, regional variants, or holiday datasets.
 
+---
+## Author
+
+Maintained by **AR Rahman**
+GitHub: [@arlegacy](https://github.com/ardevcraft)
+
+Crafted with ❤️ for open-source community. 🇧🇩
 Apache-2.0. See LICENSE.

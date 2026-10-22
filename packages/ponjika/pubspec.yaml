@@ -1,11 +1,11 @@
 name: ponjika
 version: 2.0.0
 description: Typed Bangla civil dates, bidirectional conversion, parsing, formatting, arithmetic and recurring events for pure Dart.
-homepage: https://github.com/arrahmanbd/ponjika
-repository: https://github.com/arrahmanbd/ponjika
-issue_tracker: https://github.com/arrahmanbd/ponjika/issues
+homepage: https://github.com/ardevcraft/ponjika
+repository: https://github.com/ardevcraft/ponjika
+issue_tracker: https://github.com/ardevcraft/ponjika/issues
 environment:
-  sdk: '>=3.9.0 <4.0.0'
+  sdk: ">=3.9.0 <4.0.0"
 dependencies:
   json_annotation: ^4.12.0
 dev_dependencies:
