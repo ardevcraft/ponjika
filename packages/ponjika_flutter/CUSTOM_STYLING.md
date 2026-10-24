@@ -70,3 +70,9 @@ final date = await showPonjikaDatePicker(
 ```
 
 For completely custom cell content, `dayBuilder` remains available. The calendar still owns interaction, focus, keyboard navigation, selection and accessibility semantics.
+
+## Bangladesh weekends and custom weekday headings
+
+`PonjikaCalendar` accepts `weekdayLabels` in Monday-through-Sunday order and `weekendDays` as Dart `DateTime` weekday constants. Calendar theme adds `weekendWeekdayColor`, `weekendForegroundColor`, and `weekendBackgroundColor`. Selected and today custom fills override weekend tint, so selection remains legible.
+
+See `examples/BanglaCalendarScreen.dart` for a complete responsive screen.

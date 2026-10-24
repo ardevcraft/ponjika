@@ -32,12 +32,21 @@ class PonjikaCalendar extends StatefulWidget {
     this.language = PonjikaLanguage.bangla,
     this.numerals = PonjikaNumerals.bangla,
     this.firstWeekday = DateTime.saturday,
+    this.weekdayLabels,
+    this.weekendDays = const {DateTime.friday, DateTime.saturday},
     this.today,
     this.showGregorian = true,
     this.showTodayButton = true,
     this.dayBuilder,
+    this.theme,
   }) {
     RangeError.checkValueInInterval(firstWeekday, 1, 7, 'firstWeekday');
+    if (weekdayLabels != null && weekdayLabels!.length != 7) {
+      throw ArgumentError.value(weekdayLabels, 'weekdayLabels', 'Expected Monday–Sunday labels');
+    }
+    for (final day in weekendDays) {
+      RangeError.checkValueInInterval(day, 1, 7, 'weekendDays');
+    }
     if (firstDate != null &&
         lastDate != null &&
         lastDate!.isBefore(firstDate!)) {
@@ -55,10 +64,18 @@ class PonjikaCalendar extends StatefulWidget {
   final PonjikaLanguage language;
   final PonjikaNumerals numerals;
   final int firstWeekday;
+  /// Optional labels ordered Monday through Sunday, regardless of grid start.
+  final List<String>? weekdayLabels;
+  /// Weekday numbers matching DateTime.monday ... DateTime.sunday.
+  final Set<int> weekendDays;
   final BanglaDate? today;
   final bool showGregorian;
   final bool showTodayButton;
   final PonjikaDayBuilder? dayBuilder;
+
+  /// Optional local visual override. When null, [PonjikaCalendarTheme] is
+  /// resolved from `Theme.of(context).extensions`.
+  final PonjikaCalendarTheme? theme;
   @override
   State<PonjikaCalendar> createState() => _PonjikaCalendarState();
 }
@@ -178,7 +195,7 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final tokens = PonjikaCalendarTheme.of(context);
+    final tokens = widget.theme ?? PonjikaCalendarTheme.of(context);
     final cells = const BanglaCalendar().monthGrid(
       _month.year,
       _month.month,
@@ -203,22 +220,40 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: tokens.maximumWidth),
       child: Material(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(tokens.cornerRadius),
+        color: tokens.backgroundColor ?? colors.surface,
+        surfaceTintColor: tokens.surfaceTintColor,
+        shadowColor: tokens.shadowColor,
+        elevation: tokens.elevation,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.cornerRadius),
+          side: tokens.borderWidth > 0
+              ? BorderSide(
+                  color: tokens.borderColor ?? colors.outlineVariant,
+                  width: tokens.borderWidth,
+                )
+              : BorderSide.none,
+        ),
         child: Padding(
           padding: EdgeInsets.all(tokens.contentPadding),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
+              Padding(
+                padding: tokens.headerPadding,
+                child: Row(
+                  children: [
                   IconButton(
                     key: const ValueKey('ponjika.previous'),
                     tooltip: _bn ? 'আগের মাস' : 'Previous month',
                     onPressed: _canMove(-1)
                         ? () => _showMonth(_month.addMonths(-1))
                         : null,
-                    icon: const Icon(Icons.chevron_left),
+                    style: IconButton.styleFrom(
+                      foregroundColor: tokens.navigationIconColor,
+                      disabledForegroundColor: tokens.navigationDisabledIconColor,
+                      backgroundColor: tokens.navigationBackgroundColor,
+                    ),
+                    icon: Icon(Icons.chevron_left, size: tokens.navigationIconSize),
                   ),
                   Expanded(
                     child: Semantics(
@@ -227,7 +262,7 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
                       child: Text(
                         '${_month.monthValue.nameIn(widget.language)} ${_digits(_month.year)}',
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.titleMedium,
+                        style: tokens.headerTextStyle ?? theme.textTheme.titleMedium,
                       ),
                     ),
                   ),
@@ -237,25 +272,34 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
                     onPressed: _canMove(1)
                         ? () => _showMonth(_month.addMonths(1))
                         : null,
-                    icon: const Icon(Icons.chevron_right),
+                    style: IconButton.styleFrom(
+                      foregroundColor: tokens.navigationIconColor,
+                      disabledForegroundColor: tokens.navigationDisabledIconColor,
+                      backgroundColor: tokens.navigationBackgroundColor,
+                    ),
+                    icon: Icon(Icons.chevron_right, size: tokens.navigationIconSize),
                   ),
-                ],
+                  ],
+                ),
               ),
               Padding(
-                padding: EdgeInsets.symmetric(vertical: tokens.spacing),
+                padding: tokens.weekdayPadding,
                 child: Row(
                   children: List.generate(7, (index) {
                     final day = (widget.firstWeekday - 1 + index) % 7 + 1;
                     final name = ponjikaWeekdayName(day, widget.language);
+                    final isWeekend = widget.weekendDays.contains(day);
                     return Expanded(
                       child: Semantics(
                         label: name,
                         excludeSemantics: true,
                         child: Text(
-                          name.substring(0, _bn ? 2 : 3),
+                          widget.weekdayLabels?[day - 1] ?? name.substring(0, _bn ? 2 : 3),
                           textAlign: TextAlign.center,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colors.onSurfaceVariant,
+                          style: (tokens.weekdayTextStyle ?? theme.textTheme.labelSmall)?.copyWith(
+                            color: isWeekend
+                                ? (tokens.weekendWeekdayColor ?? tokens.weekdayColor ?? colors.onSurfaceVariant)
+                                : (tokens.weekdayColor ?? colors.onSurfaceVariant),
                           ),
                         ),
                       ),
@@ -283,15 +327,20 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
                             widget.selectedRange?.contains(date) ?? false;
                         final isToday = date == today;
                         final enabled = _enabled(date);
+                        final isWeekend = widget.weekendDays.contains(date.toGregorian().weekday);
                         final foreground = selected
-                            ? colors.onPrimary
+                            ? tokens.selectedDayForegroundColor ?? colors.onPrimary
                             : !enabled
-                            ? colors.onSurface.withValues(alpha: 0.38)
+                            ? tokens.disabledDayForegroundColor ?? colors.onSurface.withValues(alpha: 0.38)
+                            : isToday && tokens.todayForegroundColor != null
+                            ? tokens.todayForegroundColor!
                             : inRange
-                            ? colors.onSecondaryContainer
+                            ? tokens.rangeDayForegroundColor ?? colors.onSecondaryContainer
+                            : isWeekend && tokens.weekendForegroundColor != null && enabled
+                            ? tokens.weekendForegroundColor!
                             : cell.isCurrentMonth
-                            ? colors.onSurface
-                            : colors.onSurfaceVariant;
+                            ? tokens.dayForegroundColor ?? colors.onSurface
+                            : tokens.outsideDayForegroundColor ?? colors.onSurfaceVariant;
                         final gregorian = date.toGregorian();
                         final semanticLabel =
                             '${BanglaDateFormat('EEEE, d MMMM yyyy', language: widget.language, numerals: widget.numerals).format(date)}, ${gregorian.year}-${gregorian.month}-${gregorian.day}'
@@ -301,8 +350,10 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
                           () => FocusNode(debugLabel: 'Ponjika $date'),
                         );
                         return Expanded(
-                          child: SizedBox(
-                            height: cellHeight,
+                          child: Padding(
+                            padding: EdgeInsets.all(tokens.cellSpacing),
+                            child: SizedBox(
+                              height: cellHeight,
                             child: Focus(
                               onKeyEvent: (_, event) => _key(date, event),
                               child: Semantics(
@@ -316,23 +367,39 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
                                   key: ValueKey('ponjika.day.$date'),
                                   focusNode: node,
                                   onPressed: enabled ? () => _pick(date) : null,
-                                  style: TextButton.styleFrom(
-                                    minimumSize: Size.zero,
-                                    padding: EdgeInsets.zero,
-                                    foregroundColor: foreground,
-                                    disabledForegroundColor: foreground,
-                                    backgroundColor: selected
-                                        ? colors.primary
-                                        : inRange
-                                        ? colors.secondaryContainer
-                                        : null,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                        tokens.cornerRadius / 2,
+                                  style: ButtonStyle(
+                                    minimumSize: const WidgetStatePropertyAll(Size.zero),
+                                    padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                                    foregroundColor: WidgetStatePropertyAll(foreground),
+                                    backgroundColor: WidgetStatePropertyAll(
+                                      selected
+                                          ? tokens.selectedDayBackgroundColor ?? colors.primary
+                                          : isToday && tokens.todayBackgroundColor != null
+                                          ? tokens.todayBackgroundColor
+                                          : inRange
+                                          ? tokens.rangeDayBackgroundColor ?? colors.secondaryContainer
+                                          : isWeekend
+                                          ? tokens.weekendBackgroundColor
+                                          : null,
+                                    ),
+                                    overlayColor: tokens.dayOverlayColor == null
+                                        ? null
+                                        : WidgetStatePropertyAll(tokens.dayOverlayColor),
+                                    shape: WidgetStatePropertyAll(
+                                      RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(tokens.dayCornerRadius),
+                                        side: isToday
+                                            ? BorderSide(
+                                                color: tokens.todayBorderColor ?? colors.primary,
+                                                width: tokens.todayBorderWidth,
+                                              )
+                                            : tokens.dayBorderWidth > 0
+                                            ? BorderSide(
+                                                color: tokens.dayBorderColor ?? colors.outlineVariant,
+                                                width: tokens.dayBorderWidth,
+                                              )
+                                            : BorderSide.none,
                                       ),
-                                      side: isToday
-                                          ? BorderSide(color: colors.primary)
-                                          : BorderSide.none,
                                     ),
                                   ),
                                   child:
@@ -352,11 +419,18 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
                                               _digits(date.day),
                                               maxLines: 1,
                                               softWrap: false,
-                                              style: theme.textTheme.bodyMedium
+                                              style: ((selected
+                                                      ? tokens.selectedDayTextStyle
+                                                      : !enabled
+                                                      ? tokens.disabledDayTextStyle
+                                                      : isToday
+                                                      ? tokens.todayDayTextStyle
+                                                      : !cell.isCurrentMonth
+                                                      ? tokens.outsideDayTextStyle
+                                                      : tokens.dayTextStyle) ?? theme.textTheme.bodyMedium)
                                                   ?.copyWith(
                                                     color: foreground,
-                                                    fontWeight:
-                                                        selected || isToday
+                                                    fontWeight: selected || isToday
                                                         ? FontWeight.w700
                                                         : null,
                                                   ),
@@ -369,12 +443,8 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
                                                 '${gregorian.day}/${gregorian.month}',
                                                 maxLines: 1,
                                                 softWrap: false,
-                                                style: theme
-                                                    .textTheme
-                                                    .labelSmall
-                                                    ?.copyWith(
-                                                      color: foreground,
-                                                    ),
+                                                style: (tokens.gregorianTextStyle ?? theme.textTheme.labelSmall)
+                                                    ?.copyWith(color: foreground),
                                               ),
                                             ),
                                         ],
@@ -383,6 +453,7 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
                               ),
                             ),
                           ),
+                        ),
                         );
                       }),
                     ),
@@ -391,12 +462,18 @@ class _PonjikaCalendarState extends State<PonjikaCalendar> {
               ),
               if (widget.showTodayButton)
                 Align(
-                  alignment: AlignmentDirectional.centerEnd,
+                  alignment: tokens.todayButtonAlignment,
                   child: TextButton(
                     key: const ValueKey('ponjika.today'),
                     onPressed: _withinBounds(_today)
                         ? () => _showMonth(_today)
                         : null,
+                    style: TextButton.styleFrom(
+                      foregroundColor: tokens.todayButtonForegroundColor,
+                      backgroundColor: tokens.todayButtonBackgroundColor,
+                      padding: tokens.todayButtonPadding,
+                      textStyle: tokens.todayButtonTextStyle,
+                    ),
                     child: Text(_bn ? 'আজ' : 'Today'),
                   ),
                 ),

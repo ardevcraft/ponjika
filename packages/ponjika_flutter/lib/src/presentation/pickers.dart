@@ -17,6 +17,7 @@ Future<BanglaDate?> showPonjikaDatePicker({
   BanglaDate? today,
   bool showGregorian = true,
   bool barrierDismissible = true,
+  PonjikaCalendarTheme? theme,
 }) {
   _validateBounds(firstDate, lastDate);
   if (initialDate != null &&
@@ -41,6 +42,7 @@ Future<BanglaDate?> showPonjikaDatePicker({
       firstWeekday: firstWeekday,
       today: today,
       showGregorian: showGregorian,
+      theme: theme,
     ),
   );
 }
@@ -59,6 +61,7 @@ Future<BanglaDateRange?> showPonjikaDateRangePicker({
   BanglaDate? today,
   bool showGregorian = true,
   bool barrierDismissible = true,
+  PonjikaCalendarTheme? theme,
 }) {
   _validateBounds(firstDate, lastDate);
   if (initialRange != null &&
@@ -86,6 +89,7 @@ Future<BanglaDateRange?> showPonjikaDateRangePicker({
       firstWeekday: firstWeekday,
       today: today,
       showGregorian: showGregorian,
+      theme: theme,
     ),
   );
 }
@@ -129,6 +133,7 @@ class _PonjikaPicker extends StatefulWidget {
     required this.firstWeekday,
     this.today,
     required this.showGregorian,
+    this.theme,
   });
   final bool rangeMode;
   final BanglaDate? initialDate;
@@ -141,6 +146,7 @@ class _PonjikaPicker extends StatefulWidget {
   final int firstWeekday;
   final BanglaDate? today;
   final bool showGregorian;
+  final PonjikaCalendarTheme? theme;
   @override
   State<_PonjikaPicker> createState() => _PonjikaPickerState();
 }
@@ -230,6 +236,7 @@ class _PonjikaPickerState extends State<_PonjikaPicker> {
               firstWeekday: widget.firstWeekday,
               today: widget.today,
               showGregorian: widget.showGregorian,
+              theme: widget.theme,
               onChanged: _select,
             ),
             if (_invalidRange)

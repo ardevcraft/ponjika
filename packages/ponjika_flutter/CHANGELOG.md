@@ -1,4 +1,6 @@
 ## 1.0.1
+- Introduce 2COL Styling and label management
+## 1.0.1
 - Introduce more customized ui
 
 ## 1.0.0
